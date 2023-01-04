@@ -8,6 +8,11 @@ if filereadable(expand("~/.vimrc.before"))
   source ~/.vimrc.before
 endif
 
+" ================ Python Config =====================
+"
+"set pythonthreedll=/usr/local/Cellar/python@3.10/3.10.4/Frameworks/Python.framework/Versions/3.10/Python
+"set pythonthreehome=/usr/local/Cellar/python@3.10/3.10.4/Frameworks/Python.framework/Versions/3.10/
+
 " ================ General Config ====================
 
 set number                      "Line numbers are good
@@ -40,6 +45,19 @@ if filereadable(expand("~/.vim/vundles.vim"))
   source ~/.vim/vundles.vim
 endif
 au BufNewFile,BufRead *.vundle set filetype=vim
+
+call plug#begin(has('nvim') ? stdpath('data') . '/plugged' : '~/.vim/plugged')
+Plug 'Shougo/ddc.vim'
+Plug 'vim-denops/denops.vim'
+if has('nvim')
+  Plug 'Shougo/deoplete.nvim', { 'do': ':UpdateRemotePlugins' }
+else
+  Plug 'Shougo/deoplete.nvim'
+  Plug 'roxma/nvim-yarp'
+  Plug 'roxma/vim-hug-neovim-rpc'
+endif
+let g:deoplete#enable_at_startup = 1
+call plug#end()
 
 " ================ Turn Off Swap Files ==============
 
@@ -116,6 +134,8 @@ set smartcase       " ...unless we type a capital
 " ================ Security ==========================
 set modelines=0
 set nomodeline
+
+exe 'source' "/Users/pkjar/.vim/settings/yadr-keymap-mac.vim"
 
 " ================ Custom Settings ========================
 so ~/.yadr/vim/settings.vim
