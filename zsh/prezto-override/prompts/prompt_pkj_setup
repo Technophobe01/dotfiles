@@ -1,0 +1,129 @@
+#
+# A simple theme that displays relevant, contextual information.
+#
+# Authors:
+#   pkj Ionescu <pkj.ionescu@gmail.com>
+#
+# Screenshots:
+#   http://i.imgur.com/nrGV6pg.png
+#
+
+#
+# 16 Terminal Colors
+# -- ---------------
+#  0 black
+#  1 red
+#  2 green
+#  3 yellow
+#  4 blue
+#  5 magenta
+#  6 cyan
+#  7 white
+#  8 bright black
+#  9 bright red
+# 10 bright green
+# 11 bright yellow
+# 12 bright blue
+# 13 bright magenta
+# 14 bright cyan
+# 15 bright white
+#
+
+# Load dependencies.
+pmodload 'helper'
+
+function prompt_pkj_pwd {
+  local pwd="${PWD/#$HOME/~}"
+
+  if [[ "$pwd" == (#m)[/~] ]]; then
+    _prompt_pkj_pwd="$MATCH"
+    unset MATCH
+  else
+    _prompt_pkj_pwd="${${${${(@j:/:M)${(@s:/:)pwd}##.#?}:h}%/}//\%/%%}/${${pwd:t}//\%/%%}"
+  fi
+}
+
+function prompt_pkj_git_info {
+  if (( _prompt_pkj_precmd_async_pid > 0 )); then
+    # Append Git status.
+    if [[ -s "$_prompt_pkj_precmd_async_data" ]]; then
+      alias typeset='typeset -g'
+      source "$_prompt_pkj_precmd_async_data"
+      RPROMPT+='${git_info:+${(e)git_info[status]}}'
+      unalias typeset
+    fi
+
+    # Reset PID.
+    _prompt_pkj_precmd_async_pid=0
+
+    # Redisplay prompt.
+    zle && zle reset-prompt
+  fi
+}
+
+function prompt_pkj_precmd_async {
+  # Get Git repository information.
+  if (( $+functions[git-info] )); then
+    git-info
+    typeset -p git_info >! "$_prompt_pkj_precmd_async_data"
+  fi
+
+  # Signal completion to parent process.
+  kill -WINCH $$
+}
+
+function prompt_pkj_precmd {
+  setopt LOCAL_OPTIONS
+  unsetopt XTRACE KSH_ARRAYS
+
+  # Format PWD.
+  prompt_pkj_pwd
+
+  # Define prompts.
+  RPROMPT='${editor_info[overwrite]}%(?:: %F{1}⏎%f)${VIM:+" %B%F{6}V%f%b"}'
+
+  # Kill the old process of slow commands if it is still running.
+  if (( _prompt_pkj_precmd_async_pid > 0 )); then
+    kill -KILL "$_prompt_pkj_precmd_async_pid" &>/dev/null
+  fi
+
+  # Compute slow commands in the background.
+  trap prompt_pkj_git_info WINCH
+  prompt_pkj_precmd_async &!
+  _prompt_pkj_precmd_async_pid=$!
+}
+
+function prompt_pkj_setup {
+  setopt LOCAL_OPTIONS
+  unsetopt XTRACE KSH_ARRAYS
+  prompt_opts=(cr percent subst)
+  _prompt_pkj_precmd_async_pid=0
+  _prompt_pkj_precmd_async_data="${TMPPREFIX}-prompt_pkj_data"
+
+  # Load required functions.
+  autoload -Uz add-zsh-hook
+
+  # Add hook for calling git-info before each command.
+  add-zsh-hook precmd prompt_pkj_precmd
+
+  # Define newline
+  NEWLINE=$'\n'
+
+  # Define prompt with the correct newline
+  PROMPT='${SSH_TTY:+"%F{9}%n%f%F{7}@%f%F{3}%m%f "}%F{4}${_prompt_pkj_pwd}'"$NEWLINE"'$ '
+
+  RPROMPT='${git_info:+${(e)git_info[status]}}'
+
+  SPROMPT='zsh: correct %F{1}%R%f to %F{2}%r%f [nyae]? '
+}
+
+function prompt_pkj_preview {
+  local +h PROMPT=''
+  local +h RPROMPT=''
+  local +h SPROMPT=''
+
+  editor-info 2>/dev/null
+  prompt_preview_theme 'pkj'
+}
+
+prompt_pkj_setup "$@"

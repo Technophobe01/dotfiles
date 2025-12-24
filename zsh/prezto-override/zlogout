@@ -1,0 +1,6 @@
+#
+# Executes commands at logout.
+#
+# Note: The original prezto zlogout prints a message which breaks
+# IntelliJ IDEA's environment loading. This override is silent.
+#

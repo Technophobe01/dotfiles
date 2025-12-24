@@ -1,28 +1,75 @@
-source $HOME/.zprezto/runcoms/zshrc
+# ------------------------------------------------------------
+# Fast exit for non-interactive shells (JetBrains requirement)
+# ------------------------------------------------------------
+[[ -o interactive ]] || return
 
-for config_file ($HOME/.yadr/zsh/*.zsh) source $config_file
+# ------------------------------------------------------------
+# Custom prompts (must be before Prezto for fpath)
+# ------------------------------------------------------------
+fpath=("$HOME/.yadr/zsh/prezto-override/prompts" $fpath)
 
-export PATH=/Users/pkjar/.meteor:$PATH
-
-test -e "${HOME}/.iterm2_shell_integration.zsh" && source "${HOME}/.iterm2_shell_integration.zsh"
-
-
-# >>> conda initialize >>>
-# !! Contents within this block are managed by 'conda init' !!
-__conda_setup="$('/Users/pkjar/miniconda3/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
-if [ $? -eq 0 ]; then
-    eval "$__conda_setup"
-else
-    if [ -f "/Users/pkjar/miniconda3/etc/profile.d/conda.sh" ]; then
-        . "/Users/pkjar/miniconda3/etc/profile.d/conda.sh"
-    else
-        export PATH="/Users/pkjar/miniconda3/bin:$PATH"
-    fi
+# ------------------------------------------------------------
+# Prezto (must be early)
+# ------------------------------------------------------------
+if [[ -s "$HOME/.zprezto/runcoms/zshrc" ]]; then
+  source "$HOME/.zprezto/runcoms/zshrc"
 fi
-unset __conda_setup
 
-if [ -f "/Users/pkjar/miniconda3/etc/profile.d/mamba.sh" ]; then
-    . "/Users/pkjar/miniconda3/etc/profile.d/mamba.sh"
+# ------------------------------------------------------------
+# YADR customizations
+# ------------------------------------------------------------
+for config_file in "$HOME/.yadr/zsh/"*.zsh; do
+  [[ -r "$config_file" ]] && source "$config_file"
+done
+
+# ------------------------------------------------------------
+# JetBrains compatibility: re-enable CLOBBER (prezto disables it)
+# This allows IntelliJ to redirect output to temp files
+# ------------------------------------------------------------
+if [[ "$TERMINAL_EMULATOR" == "JetBrains-JediTerm" ]] || [[ -z "$TERM_PROGRAM" ]]; then
+  setopt CLOBBER
 fi
-# <<< conda initialize <<<
+
+# ------------------------------------------------------------
+# iTerm2 integration (interactive only)
+# ------------------------------------------------------------
+if [[ "$TERM_PROGRAM" == "iTerm.app" ]] && [[ -s "$HOME/.iterm2_shell_integration.zsh" ]]; then
+  source "$HOME/.iterm2_shell_integration.zsh"
+fi
+
+# ------------------------------------------------------------
+# Colors (do NOT override TERM for JetBrains)
+# ------------------------------------------------------------
+export CLICOLOR=1
+export LS_COLORS='rs=0:di=01;34:ln=01;36:ex=01;32'
+
+# ------------------------------------------------------------
+# NVM (lazy + safe)
+# ------------------------------------------------------------
+export NVM_DIR="$HOME/.nvm"
+if [[ -s "$NVM_DIR/nvm.sh" ]]; then
+  source "$NVM_DIR/nvm.sh"
+fi
+
+# ------------------------------------------------------------
+# PATH
+# ------------------------------------------------------------
+export PATH="$HOME/jetbrains/bin:$PATH"
+
+# ------------------------------------------------------------
+# Completions (SINGLE compinit call)
+# ------------------------------------------------------------
+fpath=(
+  "$HOME/.docker/completions"
+  "$(brew --prefix 2>/dev/null)/share/zsh-completions"
+  $fpath
+)
+
+autoload -Uz compinit
+compinit -d "$HOME/.zcompdump"
+
+# ------------------------------------------------------------
+# Aliases
+# ------------------------------------------------------------
+alias claude="$HOME/.claude/local/claude"
 
